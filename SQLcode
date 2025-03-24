@@ -1,0 +1,115 @@
+CREATE TABLE appleStore_description_combined AS
+SELECT * FROM appleStore_description1
+UNION ALL
+SELECT * FROM appleStore_description2
+UNION ALL
+SELECT * FROM appleStore_description3
+UNION ALL
+SELECT * FROM appleStore_description4
+
+--Check unique count of apps and description for equal inputs
+
+SELECT COUNT(DISTINCT id) AS UniqueAppIDs
+FROM AppleStore
+
+SELECT COUNT(DISTINCT id) AS UniqueAppIDs
+FROM appleStore_description_combined
+
+--Check missing values
+
+SELECT COUNT(*) AS MissingValues
+FROM AppleStore
+Where track_name IS NULL OR user_rating IS NULL OR prime_genre IS NULL
+
+SELECT COUNT(*) AS MissingValues
+FROM appleStore_description_combined
+Where app_desc IS NULL
+
+--Show app genre distribution
+
+SELECT prime_genre, COUNT(*) AS NumApps
+FROM AppleStore
+GROUP BY prime_genre
+ORDER BY NumApps DESC
+
+--Show overall app ratings
+
+SELECT min(user_rating) AS MinRating,
+		max(user_rating) AS MaxRating,
+		avg(user_rating) AS AvgRating
+FROM AppleStore
+
+--Show ratings of paid vs non paid apps
+
+SELECT CASE
+	WHEN price > 0 THEN 'Paid'
+    ELSE 'Free'
+    END AS App_Type,
+    avg(user_rating) AS Avg_Rating
+FROM AppleStore
+Group By App_Type
+
+--Show ratings of apps with or without supported languages
+
+select CASE
+		when lang_num < 10 THEN '<10 languages'
+        When lang_num BETWEEN 10 and 30 then '10-30 languages'
+        Else '>10 languages'
+    End as language_bucket,
+    avg(user_rating) as Avg_Rating
+From AppleStore
+group by language_bucket
+Order by Avg_Rating DESC
+
+--Show apps with low ratings
+
+select prime_genre,
+		avg(user_rating) as Avg_Rating
+From AppleStore
+GROUP by prime_genre
+order by Avg_Rating ASC
+Limit 10
+
+--Show correlation of description length to rating
+
+SELECT CASE
+			WHEN length(b.app_desc) < 500 THEN 'Short'
+            WHEN length(b.app_desc) between 500 and 1000 then 'Medium'
+            Else 'Long'
+        End AS description_length_bucket,
+        avg(a.user_rating) AS average_rating
+        
+FROM
+	AppleStore AS A
+JOIN
+	appleStore_description_combined AS B
+ON A.id = B.id
+
+GROup by description_length_bucket
+order by average_rating DESC
+
+--Show ratings of apps with supported devices
+  
+select CASE
+		when sup_devices_num < 20 THEN '<20 sup devices'
+        When sup_devices_num BETWEEN 20 and 30 then '20-30 sup devices'
+        When sup_devices_num BETWEEN 30 and 40 then '30-40 sup devices'
+        Else '>40 sup devices'
+    End as sup_devices_bucket,
+    avg(user_rating) as Avg_Rating
+From AppleStore
+group by sup_devices_bucket
+Order by Avg_Rating DESC
+
+
+--Analysis and insights
+
+--Games/entertainment genre has the most success and most competition
+--Paid apps have higher ratings than free
+--Having language accessibility options 10+ have higher ratings than those with <10
+--Lowest rating genres are Catalog, Finance, Book, Navigation, Lifestyle for potentially "easier" competition
+--Long app description have better ratings potentially due to more effort into the description correlating to more care and effort into the app itself, or
+   --The customer know better on what to expect and what they are getting into so it doesn't lead to unnecessary expectations
+--Apps with supported devices of 30-40 have the lowest rating while those that support <20 have the highest rating
+	--Possibly due to despite having many compatibility, causing issues within compatibility or quality functionality, lower quality on some devices compared to others,
+    --Insufficient testing may also be a cause of this.
